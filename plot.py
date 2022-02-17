@@ -1,4 +1,6 @@
+import sys
 import time
+import os
 from multiprocessing import Process
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
@@ -28,24 +30,24 @@ def run_order_book_loop(*args, **kwargs):
     
 
 
-def live_plot(i: int):
-    state = pd.read_csv("state.csv")
+def update_plot(i: int, dirname: str = "."):
+    state = pd.read_csv(os.path.join(dirname, "state.csv"))
     if len(state) == 0:
         return mid_price, trades, 
-    market = pd.read_csv("market.csv")
-    orders = pd.read_csv("orders.csv")
-    orderbook = pd.read_csv("orderbook.csv")
+    market = pd.read_csv(os.path.join(dirname, "market.csv"))
+    orders = pd.read_csv(os.path.join(dirname, "orders.csv"))
+    orderbook = pd.read_csv(os.path.join(dirname, "orderbook.csv"))
 
     bids_data = orders.query("side == 'BUY' and action == 'SUBMIT'")
     asks_data = orders.query("side == 'SELL' and action == 'SUBMIT'")
 
     mid_price.set_data(state.time, state.mid_price)
-    vwap_price.set_data(state.time, state.vwap)
+    # vwap_price.set_data(state.time, state.vwap)
     best_bid.set_data(orderbook.time, orderbook.best_bid)
     best_ask.set_data(orderbook.time, orderbook.best_ask)
 
-    trades.set_offsets(market[["time", "price"]].values)
-    trades.set_sizes(market.quantity*5)
+    # trades.set_offsets(market[["time", "price"]].values)
+    # trades.set_sizes(market.quantity)
 
     bids.set_offsets(bids_data[["time", "limit"]].values)
     asks.set_offsets(asks_data[["time", "limit"]].values)
@@ -67,15 +69,22 @@ def live_plot(i: int):
 
     return mid_price, trades, equity, inventory
 
-if __name__ == "__main__":
-    run_live = True
-    if run_live:    
-        loop_process = Process(target=run_order_book_loop, args=("SOLBUSD", 100, 50))
-        loop_process.start()
+def live_plot():
     
-    ani = FuncAnimation(fig, live_plot, blit=False, interval=20)
+    loop_process = Process(target=run_order_book_loop, args=("SOLBUSD", 0, 100))
+    loop_process.start()
+
+    ani = FuncAnimation(fig, update_plot, blit=False, interval=20)
     plt.show()
 
-    if run_live:
-        loop_process.join()
-    
+    loop_process.join()
+
+def plot_from_dir(dirname: str):
+    update_plot(0, dirname)
+    plt.show()
+
+if __name__ == "__main__":
+    if sys.argv[1] == "live":
+        live_plot()
+    elif sys.argv[1] == "dir":
+        plot_from_dir(sys.argv[2])

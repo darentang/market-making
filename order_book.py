@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 from binance import AsyncClient, BinanceSocketManager, Client
 from pprint import pprint
@@ -7,7 +8,8 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 class OrderBook:
-    def __init__(self, ticker: str, interval: int = 0, orderbook_fname: str = "orderbook.csv", market_fname: str = "market.csv"):
+    def __init__(self, ticker: str, interval: int = 0, orderbook_fname: str = "orderbook.csv", market_fname: str = "market.csv",
+        dirname: str = "."):
         self.ticker = ticker
         self.client = Client()
         self.orderbook_update_callback = None
@@ -15,8 +17,8 @@ class OrderBook:
         self.interval = interval
         self.print = False
 
-        self.orderbook_fname = orderbook_fname
-        self.market_fname = market_fname
+        self.orderbook_fname = os.path.join(dirname, orderbook_fname)
+        self.market_fname = os.path.join(dirname, market_fname)
 
         with open(self.orderbook_fname, "w") as f:
             f.write(",".join([
